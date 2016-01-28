@@ -21,7 +21,7 @@ class MarkovDatabase:
         """Opens a new MarkovDatabase from the given SQLite path."""
         self.conn = sqlite3.connect(db_path)
 
-        cur = self.db.cursor()
+        cur = self.conn.cursor()
         # Set up chains table.
         # word is NULL if this is node represents the end of a message.
         # last_word is NULL if the given word starts a new message.
