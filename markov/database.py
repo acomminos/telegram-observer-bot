@@ -38,7 +38,19 @@ class MarkovDatabase:
                        first_name TEXT NOT NULL,
                        last_name TEXT,
                        username TEXT)""")
+
         self.conn.commit()
+
+    def get_user_details(self, username):
+        """Returns a 3-tuple of user details, (uid, first_name, last_name),
+        or None if the username was not found."""
+        cur = self.conn.cursor()
+        user_results = cur.execute("SELECT user_id,first_name,last_name from users WHERE username=?",
+                                   (username,)).fetchall()
+        if len(user_results) == 0:
+            return None
+
+        return user_results[0]
 
     def add_message(self, user, message):
         """Parses a markov chain of the given message and adds it to the

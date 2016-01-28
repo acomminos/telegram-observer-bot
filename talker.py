@@ -40,13 +40,7 @@ me = bot.getMe()
 command = "/%s" % args.command
 
 # Fetch user ID from the database.
-#user_results = cur.execute("SELECT user_id,first_name,last_name from users WHERE username=?",
-#                           (args.user,)).fetchall()
-#if len(user_results) == 0:
-#    print "No data for user '%s'." % args.user
-#    sys.exit(1)
-#
-#user, first_name, last_name = user_results[0]
+user, first_name, last_name = db.get_user_details(args.user)
 
 def format_word(word):
     """Reformats a given word for display to the user, removing @
@@ -72,8 +66,7 @@ while True:
         if not message or not message.text or not message.text.startswith(command):
             continue
 
-        uid = message.from_user.id
-        generated = " ".join(format_word(w) for w in db.generate_message(uid))
+        generated = " ".join(format_word(w) for w in db.generate_message(user))
         if args.monospace:
             generated = "`" + generated + "`"
 
