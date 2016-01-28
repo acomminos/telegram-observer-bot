@@ -78,6 +78,9 @@ while True:
 
             word, = random.choice(options)
             if word:
+                # Strip @ symbols to prevent users from being notified.
+                if word.startswith("@") and len(word) > 1:
+                    word = word[1:]
                 generated.append(word)
                 last_word = word
             else:
