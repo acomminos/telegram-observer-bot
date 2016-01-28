@@ -43,7 +43,6 @@ for username, token in talker_tokens.iteritems():
     child_args = ["python", os.path.join(sys.path[0], "talker.py"), token, username]
     if args.parallel_chat:
         child_args += ["--parallel-chat", str(args.parallel_chat)]
-    print child_args
     talkers[username] = subprocess.Popen(child_args)
 
 next_update = 0
