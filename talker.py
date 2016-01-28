@@ -94,7 +94,6 @@ while True:
     for update in updates:
         next_update = update.update_id + 1
         message = update.message
-        print message
         if not message or not message.text or not should_respond(message.text):
             continue
 
