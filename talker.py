@@ -15,10 +15,9 @@
 
 import argparse
 import telegram
-import sqlite3
-import random
 import time
 import sys
+from markov.database import MarkovDatabase
 
 # Delay to wait before reattempting.
 RETRY_DELAY = 5
@@ -35,20 +34,27 @@ parser.add_argument("--database",
 
 args = parser.parse_args()
 bot = telegram.Bot(token=args.token)
-conn = sqlite3.connect(args.database)
-cur = conn.cursor()
+db = MarkovDatabase(args.database)
 
 me = bot.getMe()
 command = "/%s" % args.command
 
 # Fetch user ID from the database.
-user_results = cur.execute("SELECT user_id,first_name,last_name from users WHERE username=?",
-                           (args.user,)).fetchall()
-if len(user_results) == 0:
-    print "No data for user '%s'." % args.user
-    sys.exit(1)
+#user_results = cur.execute("SELECT user_id,first_name,last_name from users WHERE username=?",
+#                           (args.user,)).fetchall()
+#if len(user_results) == 0:
+#    print "No data for user '%s'." % args.user
+#    sys.exit(1)
+#
+#user, first_name, last_name = user_results[0]
 
-user, first_name, last_name = user_results[0]
+def format_word(word):
+    """Reformats a given word for display to the user, removing @
+    symbols in particular."""
+    # Strip @ symbols to prevent users from being notified.
+    if word.startswith("@") and len(word) > 1:
+        return word[1:]
+    return word
 
 next_update = 0
 while True:
@@ -66,45 +72,16 @@ while True:
         if not message or not message.text or not message.text.startswith(command):
             continue
 
-        generated = []
-        last_word = None
-        while True:
-            # For some reason, we can't select NULL columns using None.
-            if last_word:
-                options = cur.execute("SELECT word FROM chains WHERE (user_id=? AND last_word=?)",
-                                      (user, unicode(last_word))).fetchall()
-            else:
-                options = cur.execute("SELECT word FROM chains WHERE (user_id=? AND last_word IS NULL)",
-                                      (user,)).fetchall()
-
-            if len(options) == 0:
-                try:
-                    bot.sendMessage(message.chat.id, "Insufficient data for user.", reply_to_message_id=message.message_id)
-                except telegram.error.TelegramError as err:
-                    print err
-                    print "Failed to send message, likely overloaded."
-                    time.sleep(RETRY_DELAY)
-                    pass
-                break
-
-            word, = random.choice(options)
-            if word:
-                last_word = word
-                # Strip @ symbols to prevent users from being notified.
-                if word.startswith("@") and len(word) > 1:
-                    word = word[1:]
-                generated.append(word)
-            else:
-                break
-
-        generated_string = " ".join(generated)
+        uid = message.from_user.id
+        generated = " ".join(format_word(w) for w in database.generate_message(uid))
         if args.monospace:
-            generated_string = "`" + generated_string + "`"
+            generated = "`" + generated + "`"
 
         try:
-            bot.sendMessage(message.chat.id, generated_string, parse_mode="Markdown")
+            bot.sendMessage(message.chat.id, generated, parse_mode="Markdown")
         except telegram.error.TelegramError as err:
             print err
             print "Failed to send message, likely overloaded."
             time.sleep(RETRY_DELAY)
 
+db.close()

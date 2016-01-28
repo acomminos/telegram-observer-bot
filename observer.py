@@ -18,6 +18,7 @@
 import argparse
 import telegram
 import sqlite3
+from markov.database import MarkovDatabase
 
 parser = argparse.ArgumentParser(description="Observe and construct markov chains of users' Telegram conversations.")
 parser.add_argument("token", help="The bot's token.")
@@ -28,25 +29,7 @@ parser.add_argument("--database",
 
 args = parser.parse_args()
 bot = telegram.Bot(token=args.token)
-conn = sqlite3.connect(args.database)
-
-# Set up chains table.
-# word is NULL if this is node represents the end of a message.
-# last_word is NULL if the given word starts a new message.
-# While space inefficient, letting multiple rows serve as a frequency weight
-# is rather nice and simple.
-cur = conn.cursor()
-cur.execute("""CREATE TABLE IF NOT EXISTS chains (
-               user_id INTEGER NOT NULL,
-               word TEXT,
-               last_word TEXT)""")
-
-# Create a users table to be able to easily associate a name with an id.
-cur.execute("""CREATE TABLE IF NOT EXISTS users (
-               user_id INTEGER NOT NULL PRIMARY KEY,
-               first_name TEXT NOT NULL,
-               last_name TEXT,
-               username TEXT)""")
+db = MarkovDatabase(args.database)
 
 next_update = 0
 while True:
@@ -65,26 +48,6 @@ while True:
         if not message or not message.text or not message.from_user:
             continue
 
-        cur.execute("INSERT OR REPLACE INTO users VALUES (?,?,?,?)",
-                    (message.from_user.id,
-                     message.from_user.first_name,
-                     message.from_user.last_name,
-                     message.from_user.username))
+        db.add_message(message.from_user, message.text)
 
-        uid = message.from_user.id
-        text = message.text
-
-        # FIXME(acomminos): very naive, does not incorporate punctuation nor case.
-        words = text.split(' ')
-        if len(words) == 0:
-            continue
-
-        last_word = None
-        # We append a "None" entry to the end in order to commit the terminating word.
-        for word in text.split(' ') + [None]:
-            cur.execute("""INSERT INTO chains VALUES (?,?,?)""", (uid, word, last_word))
-            last_word = word
-
-        conn.commit()
-
-conn.close()
+db.close()
