@@ -17,6 +17,8 @@ import argparse
 import telegram
 import time
 import sys
+import threading
+import random
 from markov.database import MarkovDatabase
 
 # Delay to wait before reattempting.
@@ -31,6 +33,9 @@ parser.add_argument("--database",
                     default="observer.db",
                     nargs=1,
                     help="The path to the SQLite database used to load the generated chains. Default is observer.db.")
+parser.add_argument("--chatty", type=int, help="Specifies a chat ID to talk in arbitrarily. Delay is uniform across min and max.")
+parser.add_argument("--chatty-delay-min", type=int, default=30, help="Minimum delay in seconds between posting via chatty. Default is 30 seconds.")
+parser.add_argument("--chatty-delay-max", type=int, default=1200, help="Maximum delay in seconds between posting via chatty. Default is 1200 seconds.")
 
 args = parser.parse_args()
 bot = telegram.Bot(token=args.token)
@@ -50,9 +55,31 @@ def format_word(word):
         return word[1:]
     return word
 
+def generate_message(db, user):
+    generated = " ".join(format_word(w) for w in db.generate_message(user))
+    if args.monospace:
+        generated = "`" + generated + "`"
+    return generated
+
 def should_respond(message):
     """Returns True if the bot should respond to the given message."""
     return ("@" + me.username) in message or message.startswith(command)
+
+if args.chatty:
+    chat_id = args.chatty
+    class ChattyThread:
+        def __call__(self):
+            chatty_db = MarkovDatabase(args.database)
+            while True:
+                time.sleep(random.randint(args.chatty_delay_min, args.chatty_delay_max))
+                try:
+                    bot.sendMessage(chat_id, generate_message(chatty_db, user), parse_mode="Markdown")
+                except telegram.error.TelegramError:
+                    pass
+            chatty_db.close()
+
+    chatty_thread = threading.Thread(target=ChattyThread())
+    chatty_thread.start()
 
 next_update = 0
 while True:
@@ -67,12 +94,11 @@ while True:
     for update in updates:
         next_update = update.update_id + 1
         message = update.message
+        print message
         if not message or not message.text or not should_respond(message.text):
             continue
 
-        generated = " ".join(format_word(w) for w in db.generate_message(user))
-        if args.monospace:
-            generated = "`" + generated + "`"
+        generated = generate_message(db, user)
 
         try:
             bot.sendMessage(message.chat.id, generated, parse_mode="Markdown")
