@@ -26,6 +26,7 @@ parser = argparse.ArgumentParser(description="Construct and send messages based 
 parser.add_argument("token", help="The bot's token.")
 parser.add_argument("user", type=int, help="The ID of the user to simulate.")
 parser.add_argument("command", default="talk", help="The command to trigger user simulation; default is 'talk'.")
+parser.add_argument("--monospace", action="store_true", default=False, help="Use monospace text for messages- beep boop! Default is false.")
 parser.add_argument("--database",
                     default="observer.db",
                     nargs=1,
@@ -74,7 +75,7 @@ while True:
                     print "Failed to send message, likely overloaded."
                     time.sleep(RETRY_DELAY)
                     pass
-                continue
+                break
 
             word, = random.choice(options)
             if word:
@@ -86,8 +87,12 @@ while True:
             else:
                 break
 
+        generated_string = " ".join(generated)
+        if args.monospace:
+            generated_string = "`" + generated_string + "`"
+
         try:
-            bot.sendMessage(message.chat.id, " ".join(generated), reply_to_message_id=message.message_id)
+            bot.sendMessage(message.chat.id, generated_string, parse_mode="Markdown")
         except telegram.error.TelegramError as err:
             print err
             print "Failed to send message, likely overloaded."
