@@ -57,7 +57,7 @@ class MarkovDatabase:
         last_word = None
         # We append a "None" entry to the end in order to commit the terminating word.
         for word in message.split(' ') + [None]:
-            cur.execute("""INSERT INTO chains VALUES (?,?,?)""", (uid, word, last_word))
+            cur.execute("""INSERT INTO chains VALUES (?,?,?)""", (user.id, word, last_word))
             last_word = word
 
         self.conn.commit()
