@@ -43,7 +43,15 @@ cur.execute("""CREATE TABLE IF NOT EXISTS chains (
 
 next_update = 0
 while True:
-    for update in bot.getUpdates(next_update):
+    try:
+        updates = bot.getUpdates(next_update)
+    except telegram.error.TelegramError as err:
+        print err
+        print "Error received, will try again in 5 seconds."
+        time.sleep(5)
+        continue
+
+    for update in updates:
         next_update = update.update_id + 1
 
         message = update.message

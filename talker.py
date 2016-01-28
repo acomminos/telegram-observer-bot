@@ -17,6 +17,10 @@ import argparse
 import telegram
 import sqlite3
 import random
+import time
+
+# Delay to wait before reattempting.
+RETRY_DELAY = 5
 
 parser = argparse.ArgumentParser(description="Construct and send messages based on observed markov chains.")
 parser.add_argument("token", help="The bot's token.")
@@ -38,7 +42,15 @@ command = "/" + args.command + "@" + me.username
 cur = conn.cursor()
 next_update = 0
 while True:
-    for update in bot.getUpdates(next_update):
+    try:
+        updates = bot.getUpdates(next_update)
+    except telegram.error.TelegramError as err:
+        print err
+        print "Error received, will try again in %d seconds." % RETRY_DELAY
+        time.sleep(RETRY_DELAY)
+        continue
+
+    for update in updates:
         next_update = update.update_id + 1
         message = update.message
         if not message or not message.text or not message.text == command:
@@ -55,7 +67,13 @@ while True:
                                       (user,)).fetchall()
 
             if len(options) == 0:
-                bot.sendMessage(message.chat.id, "Insufficient data for user.", reply_to_message_id=message.message_id)
+                try:
+                    bot.sendMessage(message.chat.id, "Insufficient data for user.", reply_to_message_id=message.message_id)
+                except telegram.error.TelegramError as err:
+                    print err
+                    print "Failed to send message, likely overloaded."
+                    time.sleep(RETRY_DELAY)
+                    pass
                 continue
 
             word, = random.choice(options)
@@ -65,5 +83,10 @@ while True:
             else:
                 break
 
-        bot.sendMessage(message.chat.id, " ".join(generated), reply_to_message_id=message.message_id)
+        try:
+            bot.sendMessage(message.chat.id, " ".join(generated), reply_to_message_id=message.message_id)
+        except telegram.error.TelegramError as err:
+            print err
+            print "Failed to send message, likely overloaded."
+            time.sleep(RETRY_DELAY)
 
