@@ -86,10 +86,12 @@ class MarkovDatabase:
             word, = choose_func(options)
             return word
 
-        last_word = next_word(None)
-        while last_word is not None:
-            last_word = next_word(None)
+        last_word = None
+        while True:
+            last_word = next_word(last_word)
             yield last_word
+            if last_word is None:
+                break
 
     def close(self):
         self.conn.close()

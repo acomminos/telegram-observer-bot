@@ -73,7 +73,7 @@ while True:
             continue
 
         uid = message.from_user.id
-        generated = " ".join(format_word(w) for w in database.generate_message(uid))
+        generated = " ".join(format_word(w) for w in db.generate_message(uid))
         if args.monospace:
             generated = "`" + generated + "`"
 
