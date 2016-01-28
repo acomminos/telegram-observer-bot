@@ -18,6 +18,7 @@
 import argparse
 import telegram
 import sqlite3
+import re
 from markov.database import MarkovDatabase
 
 parser = argparse.ArgumentParser(description="Observe and construct markov chains of users' Telegram conversations.")
@@ -46,6 +47,10 @@ while True:
 
         message = update.message
         if not message or not message.text or not message.from_user:
+            continue
+
+        # Don't record messages with queries to bots.
+        if re.search(r'@[\w_]+?bot', message.text) is not None:
             continue
 
         db.add_message(message.from_user, message.text)

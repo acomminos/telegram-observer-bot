@@ -50,6 +50,10 @@ def format_word(word):
         return word[1:]
     return word
 
+def should_respond(message):
+    """Returns True if the bot should respond to the given message."""
+    return ("@" + me.username) in message or message.startswith(command)
+
 next_update = 0
 while True:
     try:
@@ -63,7 +67,7 @@ while True:
     for update in updates:
         next_update = update.update_id + 1
         message = update.message
-        if not message or not message.text or not message.text.startswith(command):
+        if not message or not message.text or not should_respond(message.text):
             continue
 
         generated = " ".join(format_word(w) for w in db.generate_message(user))
