@@ -41,6 +41,13 @@ cur.execute("""CREATE TABLE IF NOT EXISTS chains (
                word TEXT,
                last_word TEXT)""")
 
+# Create a users table to be able to easily associate a name with an id.
+cur.execute("""CREATE TABLE IF NOT EXISTS users (
+               user_id INTEGER NOT NULL PRIMARY KEY,
+               first_name TEXT NOT NULL,
+               last_name TEXT,
+               username TEXT)""")
+
 next_update = 0
 while True:
     try:
@@ -57,6 +64,12 @@ while True:
         message = update.message
         if not message or not message.text or not message.from_user:
             continue
+
+        cur.execute("INSERT OR REPLACE INTO users VALUES (?,?,?,?)",
+                    (message.from_user.id,
+                     message.from_user.first_name,
+                     message.from_user.last_name,
+                     message.from_user.username))
 
         uid = message.from_user.id
         text = message.text

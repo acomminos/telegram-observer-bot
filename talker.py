@@ -24,9 +24,8 @@ RETRY_DELAY = 5
 
 parser = argparse.ArgumentParser(description="Construct and send messages based on observed markov chains.")
 parser.add_argument("token", help="The bot's token.")
-parser.add_argument("user", type=int, help="The ID of the user to simulate.")
-parser.add_argument("command", default="talk", help="The command to trigger user simulation; default is 'talk'.")
-parser.add_argument("--monospace", action="store_true", default=False, help="Use monospace text for messages- beep boop! Default is false.")
+parser.add_argument("--command", default="talk", help="The command to trigger user simulation; default is 'talk'.")
+parser.add_argument("--monospace", action="store_true", default=False, help="Use monospace text for messages- beep boop!")
 parser.add_argument("--database",
                     default="observer.db",
                     nargs=1,
@@ -37,8 +36,7 @@ bot = telegram.Bot(token=args.token)
 conn = sqlite3.connect(args.database)
 
 me = bot.getMe()
-user = args.user
-command = "/" + args.command + "@" + me.username
+command = "/" + args.command
 
 cur = conn.cursor()
 next_update = 0
@@ -54,8 +52,28 @@ while True:
     for update in updates:
         next_update = update.update_id + 1
         message = update.message
-        if not message or not message.text or not message.text == command:
+        if not message or not message.text or not message.text.startswith(command):
             continue
+        command_args = message.text.split(' ')
+        if len(command_args) != 2:
+            try:
+                bot.sendMessage(message.chat.id, "Invalid syntax; please specify username.")
+            except telegram.error.TelegramError:
+                pass
+            continue
+
+        username = command_args[1]
+        user_results = cur.execute("SELECT user_id,first_name,last_name from users WHERE username=?",
+                                   (username,)).fetchall()
+        if len(user_results) == 0:
+            try:
+                bot.sendMessage(message.chat.id, "No data for user '%s'." % username)
+            except telegram.error.TelegramError:
+                pass
+            continue
+
+        user, first_name, last_name = user_results[0]
+
         generated = []
         last_word = None
         while True:
@@ -79,11 +97,11 @@ while True:
 
             word, = random.choice(options)
             if word:
+                last_word = word
                 # Strip @ symbols to prevent users from being notified.
                 if word.startswith("@") and len(word) > 1:
                     word = word[1:]
                 generated.append(word)
-                last_word = word
             else:
                 break
 
