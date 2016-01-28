@@ -18,12 +18,14 @@ import telegram
 import sqlite3
 import random
 import time
+import sys
 
 # Delay to wait before reattempting.
 RETRY_DELAY = 5
 
 parser = argparse.ArgumentParser(description="Construct and send messages based on observed markov chains.")
 parser.add_argument("token", help="The bot's token.")
+parser.add_argument("user", help="The username of the user to simulate.")
 parser.add_argument("--command", default="talk", help="The command to trigger user simulation; default is 'talk'.")
 parser.add_argument("--monospace", action="store_true", default=False, help="Use monospace text for messages- beep boop!")
 parser.add_argument("--database",
@@ -34,11 +36,20 @@ parser.add_argument("--database",
 args = parser.parse_args()
 bot = telegram.Bot(token=args.token)
 conn = sqlite3.connect(args.database)
+cur = conn.cursor()
 
 me = bot.getMe()
-command = "/" + args.command
+command = "/%s" % args.command
 
-cur = conn.cursor()
+# Fetch user ID from the database.
+user_results = cur.execute("SELECT user_id,first_name,last_name from users WHERE username=?",
+                           (args.user,)).fetchall()
+if len(user_results) == 0:
+    print "No data for user '%s'." % args.username
+    sys.exit(1)
+
+user, first_name, last_name = user_results[0]
+
 next_update = 0
 while True:
     try:
@@ -54,25 +65,6 @@ while True:
         message = update.message
         if not message or not message.text or not message.text.startswith(command):
             continue
-        command_args = message.text.split(' ')
-        if len(command_args) != 2:
-            try:
-                bot.sendMessage(message.chat.id, "Invalid syntax; please specify username.")
-            except telegram.error.TelegramError:
-                pass
-            continue
-
-        username = command_args[1]
-        user_results = cur.execute("SELECT user_id,first_name,last_name from users WHERE username=?",
-                                   (username,)).fetchall()
-        if len(user_results) == 0:
-            try:
-                bot.sendMessage(message.chat.id, "No data for user '%s'." % username)
-            except telegram.error.TelegramError:
-                pass
-            continue
-
-        user, first_name, last_name = user_results[0]
 
         generated = []
         last_word = None
