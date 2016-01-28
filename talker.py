@@ -45,7 +45,7 @@ command = "/%s" % args.command
 user_results = cur.execute("SELECT user_id,first_name,last_name from users WHERE username=?",
                            (args.user,)).fetchall()
 if len(user_results) == 0:
-    print "No data for user '%s'." % args.username
+    print "No data for user '%s'." % args.user
     sys.exit(1)
 
 user, first_name, last_name = user_results[0]
@@ -72,7 +72,7 @@ while True:
             # For some reason, we can't select NULL columns using None.
             if last_word:
                 options = cur.execute("SELECT word FROM chains WHERE (user_id=? AND last_word=?)",
-                                      (user, str(last_word))).fetchall()
+                                      (user, unicode(last_word))).fetchall()
             else:
                 options = cur.execute("SELECT word FROM chains WHERE (user_id=? AND last_word IS NULL)",
                                       (user,)).fetchall()
