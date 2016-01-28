@@ -74,13 +74,13 @@ class MarkovDatabase:
             """Returns the word after the provided word for the current user
             according to their markov chain."""
             # FIXME: For some reason, we can't select NULL columns using None.
-            if last_word:
+            if word:
                 options = cur.execute("SELECT word FROM chains WHERE (user_id=? AND last_word=?)",
                                       (user, unicode(last_word))).fetchall()
             else:
                 options = cur.execute("SELECT word FROM chains WHERE (user_id=? AND last_word IS NULL)",
                                       (user,)).fetchall()
-            if len(word) == 0:
+            if len(options) == 0:
                 return None
 
             word, = choose_func(options)
