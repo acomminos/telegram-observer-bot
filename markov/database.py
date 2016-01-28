@@ -38,7 +38,7 @@ class MarkovDatabase:
                        first_name TEXT NOT NULL,
                        last_name TEXT,
                        username TEXT)""")
-        cur.commit()
+        self.conn.commit()
 
     def add_message(self, user, message):
         """Parses a markov chain of the given message and adds it to the
