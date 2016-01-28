@@ -89,9 +89,9 @@ class MarkovDatabase:
         last_word = None
         while True:
             last_word = next_word(last_word)
-            yield last_word
             if last_word is None:
                 break
+            yield last_word
 
     def close(self):
         self.conn.close()
