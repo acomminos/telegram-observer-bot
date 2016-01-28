@@ -19,18 +19,32 @@ import argparse
 import telegram
 import sqlite3
 import re
+import subprocess
+import sys
+import os
+import signal 
 from markov.database import MarkovDatabase
+from markov.config import observer_token, talker_tokens
 
 parser = argparse.ArgumentParser(description="Observe and construct markov chains of users' Telegram conversations.")
-parser.add_argument("token", help="The bot's token.")
+parser.add_argument("--parallel-chat", type=int, help="An optional chat ID to mirror users' messages into.")
 parser.add_argument("--database",
                     default="observer.db",
                     nargs=1,
                     help="The path to the SQLite database used to store the generated chains. Default is observer.db.")
 
 args = parser.parse_args()
-bot = telegram.Bot(token=args.token)
+bot = telegram.Bot(token=observer_token)
 db = MarkovDatabase(args.database)
+
+# Spawn talkers
+talkers = {}
+for username, token in talker_tokens.iteritems():
+    child_args = ["python", os.path.join(sys.path[0], "talker.py"), token, username]
+    if args.parallel_chat:
+        child_args += ["--parallel-chat", str(args.parallel_chat)]
+    print child_args
+    talkers[username] = subprocess.Popen(child_args)
 
 next_update = 0
 while True:
@@ -54,5 +68,10 @@ while True:
             continue
 
         db.add_message(message.from_user, message.text)
+
+        username = message.from_user.username
+        if message.chat_id != args.parallel_chat and username in talkers.keys():
+            # Notify bot that its targeted user has talked.
+            talkers[username].send_signal(signal.SIGUSR1)
 
 db.close()

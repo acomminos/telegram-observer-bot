@@ -63,3 +63,4 @@ target/
 
 # Observer
 observer.db
+markov/config.py
