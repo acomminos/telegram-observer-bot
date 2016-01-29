@@ -15,6 +15,7 @@
 
 import sqlite3
 import random
+import re
 
 class MarkovDatabase:
     def __init__(self, db_path):
@@ -61,14 +62,14 @@ class MarkovDatabase:
         cur.execute("INSERT OR REPLACE INTO users VALUES (?,?,?,?)",
                     (user.id, user.first_name, user.last_name, user.username))
 
-        # FIXME(acomminos): very naive, does not incorporate punctuation nor case.
-        words = message.split(' ')
+        # Currently ignores new lines and tabs, but does include punctuation
+        words = re.finall('\S+', message)
         if len(words) == 0:
             return
 
         last_word = None
         # We append a "None" entry to the end in order to commit the terminating word.
-        for word in message.split(' ') + [None]:
+        for word in words + [None]:
             cur.execute("""INSERT INTO chains VALUES (?,?,?)""", (user.id, word, last_word))
             last_word = word
 
