@@ -22,7 +22,7 @@ import re
 import subprocess
 import sys
 import os
-import signal 
+import signal
 from markov.database import MarkovDatabase
 from markov.config import observer_token, talker_tokens
 

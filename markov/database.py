@@ -63,7 +63,7 @@ class MarkovDatabase:
                     (user.id, user.first_name, user.last_name, user.username))
 
         # Currently ignores new lines and tabs, but does include punctuation
-        words = re.finall('\S+', message)
+        words = re.findall('\S+', message)
         if len(words) == 0:
             return
 
