@@ -62,6 +62,9 @@ while True:
         if not message or not message.text or not message.from_user:
             continue
 
+        if message.forward_from:
+            continue
+
         # Don't record messages with queries to bots.
         if re.search(r'@[\w_]+?bot', message.text) is not None:
             continue
