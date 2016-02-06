@@ -69,6 +69,9 @@ while True:
         if re.search(r'@[\w_]+?bot', message.text) is not None:
             continue
 
+        if message.text.startswith('//')
+            continue
+
         db.add_message(message.from_user, message.text)
 
         username = message.from_user.username
